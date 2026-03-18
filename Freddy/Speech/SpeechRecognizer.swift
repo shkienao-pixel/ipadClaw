@@ -2,36 +2,30 @@ import Foundation
 import Speech
 import AVFoundation
 
-/// 封装 SFSpeechRecognizer。
-/// 注意：不标 @MainActor，音频回调在后台线程；
-/// 所有 @Published 更新和回调统一通过 DispatchQueue.main.async 切回主线程。
 final class SpeechRecognizer: ObservableObject {
-
-    // MARK: - Published
 
     @Published private(set) var partialText: String = ""
     @Published private(set) var isAuthorized: Bool  = false
 
-    // MARK: - Callbacks（在主线程调用）
-
     var onFinalResult: ((String) -> Void)?
     var onError: ((String) -> Void)?
 
-    // MARK: - Private
-
-    private let recognizer   = SFSpeechRecognizer(locale: Locale(identifier: "zh-CN"))
-    private var recogRequest : SFSpeechAudioBufferRecognitionRequest?
-    private var recogTask    : SFSpeechRecognitionTask?
+    private let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "zh-CN"))
+    private var recogRequest: SFSpeechAudioBufferRecognitionRequest?
+    private var recogTask:    SFSpeechRecognitionTask?
     private let audioEngine  = AVAudioEngine()
+    private var tapInstalled = false   // 防止 removeTap 被多次调用
 
-    // MARK: - Authorization
+    // MARK: - Auth
 
     func requestAuthorization() {
         SFSpeechRecognizer.requestAuthorization { [weak self] status in
             DispatchQueue.main.async {
-                self?.isAuthorized = (status == .authorized)
-                if status != .authorized {
-                    self?.onError?("语音识别权限未授权，请在设置中开启")
+                let ok = (status == .authorized)
+                self?.isAuthorized = ok
+                print("[Speech] auth status: \(status.rawValue)  authorized=\(ok)")
+                if !ok {
+                    self?.onError?("语音识别权限未授权，请前往设置开启")
                 }
             }
         }
@@ -40,78 +34,126 @@ final class SpeechRecognizer: ObservableObject {
     // MARK: - Start
 
     func startListening() {
-        guard !audioEngine.isRunning else { return }
-
-        // 配置音频会话
-        let session = AVAudioSession.sharedInstance()
-        do {
-            try session.setCategory(.record, mode: .measurement, options: .duckOthers)
-            try session.setActive(true, options: .notifyOthersOnDeactivation)
-        } catch {
-            DispatchQueue.main.async { [weak self] in
-                self?.onError?("音频会话错误：\(error.localizedDescription)")
-            }
+        guard !audioEngine.isRunning else {
+            print("[Speech] already running, skip")
             return
         }
 
+        // 1. 权限
+        guard SFSpeechRecognizer.authorizationStatus() == .authorized else {
+            notify(error: "语音识别未授权")
+            return
+        }
+
+        // 2. 引擎可用性（需要网络；zh-CN 没有离线模型）
+        guard let recognizer, recognizer.isAvailable else {
+            notify(error: "识别引擎不可用，请检查网络连接")
+            return
+        }
+
+        // 3. 音频会话
+        let audioSession = AVAudioSession.sharedInstance()
+        do {
+            try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
+            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+        } catch {
+            notify(error: "音频会话错误：\(error.localizedDescription)")
+            return
+        }
+
+        // 4. 识别请求
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
         recogRequest = request
 
-        // 识别回调（在任意线程）→ 切回主线程
-        recogTask = recognizer?.recognitionTask(with: request) { [weak self] result, error in
+        // 5. 识别任务
+        recogTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
             DispatchQueue.main.async {
                 guard let self else { return }
+
+                // 先处理有效结果
                 if let result {
                     let text = result.bestTranscription.formattedString
                     self.partialText = text
                     if result.isFinal {
-                        self.stopListening()
+                        print("[Speech] final result: \(text)")
+                        self.cleanupEngine()
                         self.onFinalResult?(text)
+                        return   // ← 拿到 final 就 return，不再走 error 分支
                     }
                 }
+
+                // 再处理错误
                 if let error {
                     let nsError = error as NSError
-                    // code 1110 = 静音超时，是正常结束，不报错
-                    if nsError.code != 1110 {
-                        self.stopListening()
-                        self.onError?("识别错误：\(error.localizedDescription)")
+                    print("[Speech] error domain=\(nsError.domain) code=\(nsError.code): \(error.localizedDescription)")
+
+                    if nsError.code == 1110 {
+                        // 静音超时：把已识别的内容当最终结果
+                        let text = self.partialText
+                        self.cleanupEngine()
+                        if !text.isEmpty {
+                            self.onFinalResult?(text)
+                        }
+                        // text 为空说明用户没说话，静默恢复 idle 即可
+                    } else {
+                        self.cleanupEngine()
+                        self.onError?("识别错误 (\(nsError.code))：\(error.localizedDescription)")
                     }
                 }
             }
         }
 
-        // 挂载音频输入。
-        // 关键：把 request 捕获为局部常量，避免在后台线程访问 self 的 @Published 属性。
+        // 6. 挂载音频 tap（捕获局部 request 避免在后台线程访问 self）
         let inputNode = audioEngine.inputNode
         let format = inputNode.outputFormat(forBus: 0)
+        print("[Speech] installing tap, format: sampleRate=\(format.sampleRate) ch=\(format.channelCount)")
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { [request] buffer, _ in
             request.append(buffer)
         }
+        tapInstalled = true
 
+        // 7. 启动引擎
         audioEngine.prepare()
         do {
             try audioEngine.start()
+            print("[Speech] engine started")
         } catch {
-            DispatchQueue.main.async { [weak self] in
-                self?.onError?("音频引擎启动失败：\(error.localizedDescription)")
-            }
+            removeTapIfNeeded()
+            notify(error: "音频引擎启动失败：\(error.localizedDescription)")
         }
     }
 
-    // MARK: - Stop
+    // MARK: - Stop（外部主动调用）
 
     func stopListening() {
+        cleanupEngine()
+    }
+
+    // MARK: - Private
+
+    /// 统一清理入口，可安全多次调用
+    private func cleanupEngine() {
         guard audioEngine.isRunning else { return }
         audioEngine.stop()
-        audioEngine.inputNode.removeTap(onBus: 0)
+        removeTapIfNeeded()
         recogRequest?.endAudio()
         recogRequest = nil
         recogTask?.cancel()
         recogTask = nil
-        DispatchQueue.main.async { [weak self] in
-            self?.partialText = ""
-        }
+        DispatchQueue.main.async { [weak self] in self?.partialText = "" }
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        print("[Speech] engine stopped")
+    }
+
+    private func removeTapIfNeeded() {
+        if tapInstalled {
+            audioEngine.inputNode.removeTap(onBus: 0)
+            tapInstalled = false
+        }
+    }
+
+    private func notify(error msg: String) {
+        DispatchQueue.main.async { [weak self] in self?.onError?(msg) }
     }
 }

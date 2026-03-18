@@ -2,7 +2,7 @@ import Foundation
 import Combine
 
 @MainActor
-final class FreddyViewModel: ObservableObject {
+final class FridayViewModel: ObservableObject {
 
     // MARK: - Published
 
@@ -64,7 +64,7 @@ final class FreddyViewModel: ObservableObject {
     }
 
     func sendTestMessage() {
-        send(text: "hello，请用中文介绍一下你自己")
+        send(text: "hello，请用中文介绍一下你自己，你的名字是 Friday")
     }
 
     // MARK: - Private
