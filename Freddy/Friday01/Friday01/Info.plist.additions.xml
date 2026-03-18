@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  把下面这些 key 合并到你的 Info.plist 中。
+  如果项目使用 Xcode 的 Info tab，手动添加对应条目即可。
+-->
+
+<!-- ① 麦克风权限 -->
+<key>NSMicrophoneUsageDescription</key>
+<string>Freddy 需要使用麦克风进行语音识别。</string>
+
+<!-- ② 语音识别权限 -->
+<key>NSSpeechRecognitionUsageDescription</key>
+<string>Freddy 需要使用语音识别将你的语音转为文字，再发送给 AI。</string>
+
+<!-- ③ ATS 开发期 HTTP 例外（仅用于开发/调试，上线前删除或限制为内网 IP）
+     说明：iOS/iPadOS 默认要求 HTTPS（ATS），
+           若 OpenClaw 服务器目前只有 HTTP，需加入以下例外。
+-->
+<key>NSAppTransportSecurity</key>
+<dict>
+    <!-- 方案 A（推荐调试期）：只对该 IP 放行 HTTP -->
+    <key>NSExceptionDomains</key>
+    <dict>
+        <key>100.118.204.105</key>
+        <dict>
+            <key>NSExceptionAllowsInsecureHTTPLoads</key>
+            <true/>
+            <key>NSIncludesSubdomains</key>
+            <false/>
+        </dict>
+    </dict>
+
+    <!-- 方案 B（不推荐，仅最后备用）：全局关闭 ATS
+    <key>NSAllowsArbitraryLoads</key>
+    <true/>
+    -->
+</dict>
