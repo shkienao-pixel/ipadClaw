@@ -4,7 +4,7 @@ import Foundation
 /// 切换服务器只需修改 baseURL 和 token
 enum OpenClawConfig {
     static let baseURL    = "http://100.118.204.105:59690"
-    static let token      = "vs2imf1RKkGbMgY4mtmfkQmmQKE5JBkC"   // ⚠️ 替换为真实 token
+    static let token      = "vs2imf1RKkGbMgY4mtmfkQmmQKE5JBkC"
     static let agentID    = "friday"
     static let model      = "openclaw"
 

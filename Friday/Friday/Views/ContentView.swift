@@ -2,14 +2,14 @@ import SwiftUI
 
 struct ContentView: View {
 
-    @StateObject private var vm = FreddyViewModel()
+    @StateObject private var vm = FridayViewModel()
 
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
 
                 // ── 标题 ──────────────────────────────────
-                Text("Freddy")
+                Text("Friday")
                     .font(.system(size: 52, weight: .bold, design: .rounded))
 
                 // ── 状态指示 ──────────────────────────────
@@ -41,7 +41,7 @@ struct ContentView: View {
 
                 // ── AI 回复 ───────────────────────────────
                 Group {
-                    SectionLabel(title: "Freddy 回复", icon: "cpu")
+                    SectionLabel(title: "Friday 回复", icon: "cpu")
                     Text(vm.lastAIReply.isEmpty ? "（暂无）" : vm.lastAIReply)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(10)
