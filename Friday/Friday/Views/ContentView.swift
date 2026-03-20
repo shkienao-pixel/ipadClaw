@@ -12,6 +12,11 @@ struct ContentView: View {
                 Text("Friday")
                     .font(.system(size: 52, weight: .bold, design: .rounded))
 
+                // ── 版本号 ────────────────────────────────
+                Text("v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?")")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+
                 // ── 状态指示 ──────────────────────────────
                 StatusBadge(state: vm.appState)
 
