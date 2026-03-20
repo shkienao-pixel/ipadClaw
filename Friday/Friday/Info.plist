@@ -54,22 +54,11 @@
     <key>OpenClawToken</key>
     <string>REPLACE_WITH_YOUR_TOKEN</string>
 
-    <!-- ── ATS: allow HTTP only for the specific OpenClaw gateway IP ─────────────
-         NSIncludesSubdomains = false so only this exact host is excepted.
-         Do NOT add NSAllowsArbitraryLoads — that disables ATS globally.
-    ─────────────────────────────────────────────────────────────────────────── -->
+    <!-- ── ATS: allow all HTTP (required for OpenClaw gateway over HTTP) ── -->
     <key>NSAppTransportSecurity</key>
     <dict>
-        <key>NSExceptionDomains</key>
-        <dict>
-            <key>100.118.204.105</key>
-            <dict>
-                <key>NSExceptionAllowsInsecureHTTPLoads</key>
-                <true/>
-                <key>NSIncludesSubdomains</key>
-                <false/>
-            </dict>
-        </dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <true/>
     </dict>
 
 </dict>
