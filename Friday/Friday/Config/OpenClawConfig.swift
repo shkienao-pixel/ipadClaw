@@ -11,7 +11,7 @@ import Foundation
 /// NEVER hardcode the real token in this file.
 enum OpenClawConfig {
 
-    static let baseURL = "http://100.118.204.105:59690"
+    static let baseURL = "http://76.13.216.86:59690"
     static let agentID = "friday"
 
     /// Model name sent to the server.

@@ -21,6 +21,13 @@
     <!-- 方案 A（推荐调试期）：只对该 IP 放行 HTTP -->
     <key>NSExceptionDomains</key>
     <dict>
+        <key>76.13.216.86</key>
+        <dict>
+            <key>NSExceptionAllowsInsecureHTTPLoads</key>
+            <true/>
+            <key>NSIncludesSubdomains</key>
+            <false/>
+        </dict>
         <key>100.118.204.105</key>
         <dict>
             <key>NSExceptionAllowsInsecureHTTPLoads</key>
