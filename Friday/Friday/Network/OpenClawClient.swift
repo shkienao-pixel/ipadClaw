@@ -62,10 +62,7 @@ final class OpenClawClient {
     private func buildURLRequest(userMessage: String) throws -> URLRequest {
         var req = URLRequest(url: OpenClawConfig.chatEndpoint)
         req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.setValue(maskedAuth(OpenClawConfig.token), forHTTPHeaderField: "Authorization-Preview") // preview only in logs
-
-        // Set real authorization header
+        req.setValue("application/json",                forHTTPHeaderField: "Content-Type")
         req.setValue("Bearer \(OpenClawConfig.token)", forHTTPHeaderField: "Authorization")
         req.setValue(OpenClawConfig.agentID,            forHTTPHeaderField: "x-openclaw-agent-id")
 
