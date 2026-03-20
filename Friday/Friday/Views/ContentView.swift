@@ -42,13 +42,16 @@ struct ContentView: View {
                 // ── AI 回复 ───────────────────────────────
                 Group {
                     SectionLabel(title: "Friday 回复", icon: "cpu")
-                    Text(vm.lastAIReply.isEmpty ? "（暂无）" : vm.lastAIReply)
+                    let replyText  = vm.lastAIReply.isEmpty ? "（暂无）" : vm.lastAIReply
+                    let isErrorMsg = vm.lastAIReply.hasPrefix("❌")
+                    Text(replyText)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(10)
-                        .background(Color.green.opacity(0.08))
+                        .background(isErrorMsg ? Color.red.opacity(0.08) : Color.green.opacity(0.08))
                         .clipShape(RoundedRectangle(cornerRadius: 10))
                         .overlay(RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.green.opacity(0.2), lineWidth: 1))
+                            .stroke(isErrorMsg ? Color.red.opacity(0.3) : Color.green.opacity(0.2), lineWidth: 1))
+                        .foregroundStyle(isErrorMsg ? .red : .primary)
                 }
 
                 Divider()

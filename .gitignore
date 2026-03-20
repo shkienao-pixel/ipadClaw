@@ -18,4 +18,10 @@ Pods/
 # macOS
 .DS_Store
 
-# 不提交真实 token（OpenClawConfig 里是占位符，安全）
+# Secrets — never commit real tokens
+# Info.plist contains the OpenClawToken placeholder; if you fill in the real token
+# directly there, add it to git's exclude list or use the OPENCLAW_TOKEN env var.
+# Secrets.xcconfig (if you create one with the real token) must be gitignored:
+Secrets.xcconfig
+# If you prefer to keep token in Info.plist locally, uncomment the line below:
+# Friday/Friday/Info.plist

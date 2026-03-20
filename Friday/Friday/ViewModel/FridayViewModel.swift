@@ -99,7 +99,8 @@ final class FridayViewModel: ObservableObject {
                 let msg = (error as? LocalizedError)?.errorDescription
                        ?? error.localizedDescription
                 appState    = .error(msg)
-                lastAIReply = "（请求失败）"
+                // Show the specific error in the reply area instead of generic "（请求失败）"
+                lastAIReply = "❌ \(msg)"
             }
         }
     }
